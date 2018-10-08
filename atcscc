@@ -1,0 +1,62 @@
+#!/usr/local/bin/python
+
+import click
+import requests
+
+__author__ = "Liam Patterson"
+
+
+def deldict2string( dict ):
+	if ( dict is None ):
+		return
+	reason = str( dict.get( 'reason' ) )
+	times = str( "from " + dict.get( 'minTime' ) + " to " + dict.get( 'maxTime' ) )
+	airport = str( dict.get( 'airport' ) )
+	putItAllTogether = airport + " is delayed " + times + " due to " + \
+		reason
+	return putItAllTogether
+
+def stopdict2string( dict ):
+	if ( dict is None ):
+		return
+	reason = str( dict.get( 'reason' ) )
+	endTime = str( "until " + dict.get( 'endTime' ) )
+	airport = str( dict.get( 'airport' ) )
+	putItAllTogether = airport + " has a ground stop " + endTime + " due to " + reason
+	return putItAllTogether
+
+@click.group()
+def main():
+	"""
+	Simple CLI to grab the current ATCSCC status from the FAA via HTML
+	"""
+	pass
+
+@main.command()
+#@click.argument('delays')
+
+def delays():
+	"""Returns US Airport Delays and Summary"""
+	url_format = 'https://soa.smext.faa.gov/asws/api/airport/delays'
+	response = requests.get( url_format )
+	
+	groundStops = ( response.json()['GroundStops'] ).values()
+	groundDelays = ( response.json()['GroundDelays'] ).values()
+	closures = ( response.json()['Closures'] ).values()
+	arriveDepartDelays = ( response.json()['ArriveDepartDelays'] ).values()
+	
+	for x in range( groundStops[0] ):
+		#if( x>0 ):
+			click.echo( stopdict2string( groundStops[1][x] ) )
+	for x in range( groundDelays[0] ):
+		#if( x>0 ):
+			click.echo( deldict2string( groundDelays[1][x] ) )
+	for x in range( closures[1] ):
+		#if( x>1 ):
+			click.echo( ( closures[1][x] ) )
+	for x in range( arriveDepartDelays[0] ):
+		#if( x>0 ):
+			click.echo( deldict2string( arriveDepartDelays[1][x] ) )
+
+if __name__ == "__main__":
+	main()
