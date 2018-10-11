@@ -14,18 +14,21 @@ def deldict2string( dict ):
 	minTime = dict.get( 'minTime' )
 	maxTime = dict.get( 'maxTime' )
 	avgTime = dict.get( 'avgTime' )
+	prepend = " is"
 	if ( reason is None ):
 		reason = 'none'
 	if ( ( ( minTime is None ) or ( maxTime is None ) and ( avgTime is not None ) ) ):
 		times = str( "an average of " + avgTime )
+		prepend = " arrivals"
 	elif ( ( avgTime is None ) and ( ( minTime is not None ) and ( maxTime is not None ) ) ):
 		times = str( "from " + dict.get( 'minTime' ) + " to " + dict.get( 'maxTime' ) )
+		prepend = " departures"
 	else:
 		times = 'none'
 	if ( airport is None ):
 		airport = 'none'
 
-	putItAllTogether = airport + " is delayed " + times + " due to " + \
+	putItAllTogether = airport + prepend + " delayed " + times + " due to " + \
 		reason
 	return putItAllTogether
 
