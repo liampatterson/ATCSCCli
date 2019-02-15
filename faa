@@ -1,0 +1,131 @@
+#!/usr/local/bin/python
+
+import click
+import requests
+
+__author__ = "Liam Patterson"
+
+
+def deldict2string( dict ):
+	if ( dict is None ):
+		return
+	reason = str( dict.get( 'reason' ) )
+	airport = str( dict.get( 'airport' ) )
+	minTime = dict.get( 'minTime' )
+	maxTime = dict.get( 'maxTime' )
+	avgTime = dict.get( 'avgTime' )
+	prepend = " is"
+	if ( reason is None ):
+		reason = 'none'
+	if ( ( ( minTime is None ) or ( maxTime is None ) and ( avgTime is not None ) ) ):
+		times = str( "an average of " + avgTime )
+		prepend = " arrivals"
+	elif ( ( avgTime is None ) and ( ( minTime is not None ) and ( maxTime is not None ) ) ):
+		times = str( "from " + dict.get( 'minTime' ) + " to " + dict.get( 'maxTime' ) )
+		prepend = " departures"
+	else:
+		times = 'none'
+	if ( airport is None ):
+		airport = 'none'
+
+	putItAllTogether = airport + prepend + " delayed " + times + " due to " + \
+		reason
+	return putItAllTogether
+
+def clsddict2string( dict ):
+	if ( dict is None ):
+		return
+	reason = str( dict.get( 'reason' ) )
+	airport = str( dict.get( 'airport' ) )
+	reopen = dict.get( 'reopen' )
+
+	if ( reason is None ):
+		reason = 'none'
+	if ( reopen is None ):
+		reopen = 'not available'
+	if ( airport is None ):
+		airport = 'none'
+
+	putItAllTogether = airport + " is closed until " + reopen + " due to " + \
+		reason
+	return putItAllTogether
+
+def stopdict2string( dict ):
+	if ( dict is None ):
+		return
+	reason = str( dict.get( 'reason' ) )
+	airport = str( dict.get( 'airport' ) )
+	endTime = dict.get( 'endTime' )
+	if ( reason is None ):
+		reason = 'none'
+	if ( endTime is None ):
+		endTime = 'none'
+	else:
+		endTime = str( "until " + dict.get( 'endTime' ) )
+	if ( airport is None ):
+		airport = 'none'
+
+	putItAllTogether = airport + " has a ground stop " + endTime + " due to " + reason
+	return putItAllTogether
+
+@click.group()
+def atcscc():
+	"""
+	Simple CLI to grab the current ATCSCC status from the FAA via HTML
+	"""
+	pass
+
+@atcscc.command()
+def delays():
+	"""Returns US Airport Delays and Summary"""
+	url_format = 'https://soa.smext.faa.gov/asws/api/airport/delays'
+	response = requests.get( url_format )
+
+	groundStops = ( response.json()['GroundStops'] ).values()
+	groundDelays = ( response.json()['GroundDelays'] ).values()
+	closures = ( response.json()['Closures'] ).values()
+	arriveDepartDelays = ( response.json()['ArriveDepartDelays'] ).values()
+
+	for x in range( groundStops[0] ):
+		#if( x>0 ):
+			click.echo( stopdict2string( groundStops[1][x] ) )
+	for x in range( groundDelays[0] ):
+		#if( x>0 ):
+			click.echo( deldict2string( groundDelays[1][x] ) )
+	for x in range( closures[1] ):
+		#if( x>1 ):
+			click.echo( clsddict2string( ( closures[0][x] ) ) )
+	for x in range( arriveDepartDelays[0] ):
+		#if( x>0 ):
+			click.echo( deldict2string( arriveDepartDelays[1][x] ) )
+
+@click.group()
+def wx():
+	"""
+	grabs weather
+	"""
+	pass
+
+@wx.command()
+@click.argument('station', nargs=1)
+def afd(station):
+	"""Returns Full Length AFD for given station"""
+	nws_api = 'https://api.weather.gov/products/types/afd'
+	availableAfds = requests.get( nws_api ).json()["@graph"]
+	returnUrl = ""
+	issuanceTime = ""
+	for item in availableAfds:
+		if item['issuingOffice'] == station:
+			returnUrl = item['@id']
+			issuanceTime = item['issuanceTime']
+	if returnUrl is "":
+		click.echo( "AFD not found or station mismatch" )
+	else:
+		afdText = requests.get( returnUrl ).json()["productText"]
+		click.echo( "Valid from: " + issuanceTime )
+		click.echo( afdText )
+
+
+cli = click.CommandCollection( sources=[ atcscc, wx ] )
+if __name__ == "__main__":
+	cli()
