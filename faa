@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/python
 
 import click
 import requests
@@ -111,11 +111,11 @@ def wx():
 def afd(station):
 	"""Returns Full Length AFD for given station"""
 	nws_api = 'https://api.weather.gov/products/types/afd'
-	availableAfds = requests.get( nws_api ).json()["@graph"]
+	availableAfds = sorted( requests.get( nws_api ).json()["@graph"], key= lambda k: k['issuanceTime'], reverse=False )
 	returnUrl = ""
 	issuanceTime = ""
 	for item in availableAfds:
-		if item['issuingOffice'] == station:
+		if item['issuingOffice'].lower() == station.lower() or item['issuingOffice'].lower() == ("k" + station.lower()):
 			returnUrl = item['@id']
 			issuanceTime = item['issuanceTime']
 	if returnUrl is "":
